@@ -1,9 +1,14 @@
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
     android:paddingHorizontal="20dp"
-    android:paddingTop="2dp">
+    android:paddingTop="20dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
 
     <com.google.android.material.textfield.TextInputLayout
         android:layout_width="match_parent"
@@ -17,15 +22,16 @@
     </com.google.android.material.textfield.TextInputLayout>
 
     <com.google.android.material.textfield.TextInputLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="10dp">
+         android:layout_height="wrap_content"
+         android:layout_width="match_parent"
+         android:layout_marginTop="10dp">
 
         <com.google.android.material.textfield.TextInputEditText
-            android:id="@+id/listener_custom_import"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="Custom imports" />
+             android:layout_height="wrap_content"
+             android:layout_width="match_parent"
+             android:hint="Custom imports"
+             android:id="@+id/listener_custom_import" />
+
     </com.google.android.material.textfield.TextInputLayout>
 
     <com.google.android.material.textfield.TextInputLayout
@@ -38,6 +44,8 @@
              android:layout_width="match_parent"
              android:hint="Declare variables (### => variable name)"
              android:id="@+id/listener_custom_variables" />
+
+    </com.google.android.material.textfield.TextInputLayout>
 
     <com.google.android.material.textfield.TextInputLayout
         android:layout_width="match_parent"
@@ -58,4 +66,5 @@
         android:layout_height="wrap_content"
         android:text="Independent class/method"
         android:textSize="14sp" />
-</LinearLayout>
+    </LinearLayout>
+</ScrollView>

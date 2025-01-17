@@ -106,6 +106,17 @@ public class EventsManagerFragment extends qA {
                 .setView(listenerBinding.getRoot())
                 .setPositiveButton("Save", (di, i) -> {
                     String listenerName = listenerBinding.listenerName.getText().toString();
+                    String listenerVariables= listenerBinding.listenerName.getText().toString();
+                    String listenerVariablesAndCode = " /*-JX4UA2y_f1OckjjvxWI.bQwRei-sLEsBmds7ArsRfi0xSFEP3Php97kjdMCs5ed
+>["public class"]
+>1
+>0
+>0
+>add
+//
+private View.OnClickListener _###___CL;
+//
+BpWI8U4flOpx8Ke66QTlZYBA_NEusQ7BN-D0wvZs7ArsRfi0.EP3Php97kjdMCs*/ "
                     if (!listenerName.isEmpty()) {
                         HashMap<String, Object> hashMap = existingListener != null ? existingListener : new HashMap<>();
                         hashMap.put("name", listenerName);

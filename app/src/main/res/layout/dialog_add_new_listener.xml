@@ -43,7 +43,7 @@
              android:layout_height="wrap_content"
              android:layout_width="match_parent"
              android:hint="Declare variables (### => variable name)"
-             android:id="@+id/listener_custom_variables" />
+             android:id="@+id/listener_declare_variables" />
 
     </com.google.android.material.textfield.TextInputLayout>
 

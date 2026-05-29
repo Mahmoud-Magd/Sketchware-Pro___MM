@@ -240,8 +240,36 @@ public final class PkgPickerDialog {
             ivActive.setVisibility ( isActive ? View.VISIBLE : View.INVISIBLE );
             tvDisplay.setTextColor  ( isActive ? 0xFF1565C0 : 0xFF212121 );
 
+
+            // delete
+            if (!entry.isMain()) {
+                convertView.setOnLongClickListener(v -> {
+                    new MaterialAlertDialogBuilder(context)
+                        .setTitle("Delete package?")
+                        .setMessage(entry.getPackageName())
+                        .setPositiveButton("Delete", (d, w) -> {
+                            try {
+                                registry.removePackage(entry.getId());
+                                dismiss();  // Close dialog
+                                listener.onPackageDeleted();  // Callback to refresh UI
+                            } catch (Exception e) {
+                                SketchwareUtil.toastError(e.getMessage());
+                            }
+                        })
+                        .setNegativeButton("Cancel", null)
+                        .show();
+                    return true;
+                });
+            }
+
+
+            
+
             return convertView;
         }
+
+
+        
 
         private View buildItemView() {
             android.widget.LinearLayout row = new android.widget.LinearLayout (context);

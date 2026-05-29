@@ -4,7 +4,6 @@ import java.io.File;
 import java.util.ArrayList;
 
 import mod.magd.pkgs.PkgRegistry;
-import pro.sketchware.utility.FilePathUtil;
 
 
 // =========================================================
@@ -24,9 +23,10 @@ import pro.sketchware.utility.FilePathUtil;
 
 // USAGE:
     // In ProjectBuilder.compileJavaCode():
-    // File projectFilesDir = new File (fpu.getPathProjectFiles(sc_id));
+    // FilePathUtil fpu = new FilePathUtil();
+    // File projectFilesDir = fpu.getProjectFilesDir(builder.yq.sc_id);
     // ArrayList<File> allSources = ProjectBuilderBridge.collectAllJavaSourceFiles (
-    //     sc_id,
+    //     builder.yq.sc_id,
     //     projectFilesDir
     // );
     // Pass allSources to the ECJ compiler args.
@@ -54,13 +54,13 @@ public final class ProjectBuilderBridge {
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         // Load the package registry for this project
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        PkgRegistry registry = new PkgRegistry (projectFilesDir);
+        PkgRegistry registry = new PkgRegistry(projectFilesDir);
 
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         // Use YqPkgBridge to collect all .java files
         // from all source roots
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        YqPkgBridge bridge = new YqPkgBridge (projectFilesDir);
+        YqPkgBridge bridge = new YqPkgBridge(projectFilesDir);
         return bridge.collectAllJavaFiles(registry);
     }
 
@@ -90,9 +90,6 @@ public final class ProjectBuilderBridge {
 
         return sb.toString();
     }
-
-
-
-  
 }
+
 

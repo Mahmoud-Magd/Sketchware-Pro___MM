@@ -1,4 +1,4 @@
-package pro.sketchware.managers.java;
+package mod.magd.pkgs.dialogs;
 
 import android.app.Dialog;
 import android.content.Context;
@@ -21,7 +21,7 @@ import pro.sketchware.R;
 
 
 // =========================================================
-// JavaPkgPickerDialog
+// PkgPickerDialog
 // =========================================================
 
 // Dialog that lets the user choose an existing package from
@@ -36,13 +36,13 @@ import pro.sketchware.R;
     // Calls OnPackagePickedListener on selection.
 
 // USAGE:
-    // new JavaPkgPickerDialog (
+    // new PkgPickerDialog (
         // context, registry, activeEntry, listener
     // ).show();
 
 // =========================================================
 
-public final class JavaPkgPickerDialog {
+public final class PkgPickerDialog {
 
 
 
@@ -52,7 +52,7 @@ public final class JavaPkgPickerDialog {
     // =========================================================
 
     public interface OnPackagePickedListener {
-        void onPackagePicked (JavaPkgEntry picked);
+        void onPackagePicked (PkgEntry picked);
     }
 
 
@@ -63,8 +63,8 @@ public final class JavaPkgPickerDialog {
     // =========================================================
 
     private final Context context;
-    private final JavaPkgRegistry registry;
-    private final JavaPkgEntry activeEntry;
+    private final PkgRegistry registry;
+    private final PkgEntry activeEntry;
     private final OnPackagePickedListener listener;
 
     private Dialog dialog;
@@ -76,15 +76,15 @@ public final class JavaPkgPickerDialog {
     // CONSTRUCTOR
     // =========================================================
 
-    public JavaPkgPickerDialog (
+    public PkgPickerDialog (
         Context context,
-        JavaPkgRegistry registry,
-        JavaPkgEntry activeEntry,
+        PkgRegistry registry,
+        PkgEntry activeEntry,
         OnPackagePickedListener listener
     ) {
-        if (context  == null) throw new IllegalArgumentException ("JavaPkgPickerDialog: context must not be null.");
-        if (registry == null) throw new IllegalArgumentException ("JavaPkgPickerDialog: registry must not be null.");
-        if (listener == null) throw new IllegalArgumentException ("JavaPkgPickerDialog: listener must not be null.");
+        if (context  == null) throw new IllegalArgumentException ("PkgPickerDialog: context must not be null.");
+        if (registry == null) throw new IllegalArgumentException ("PkgPickerDialog: registry must not be null.");
+        if (listener == null) throw new IllegalArgumentException ("PkgPickerDialog: listener must not be null.");
 
         this.context     = context;
         this.registry    = registry;

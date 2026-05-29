@@ -13,9 +13,14 @@ import android.widget.TextView;
 
 
 
+import mod.magd.pkgs.PkgEntry;
+import mod.magd.pkgs.PkgRegistry;
+import mod.magd.pkgs.PkgValidator;
+
+
 
 // =========================================================
-// JavaPkgCreatorDialog
+// PkgCreatorDialog
 // =========================================================
 
 // Dialog that lets the user define and create a brand-new
@@ -29,15 +34,15 @@ import android.widget.TextView;
     //   displayName  — short label, e.g. "UI Layer"
     // Runs live validation on packageName as the user types.
     // Shows a specific error message per validation rule failure.
-    // On confirm → calls JavaPkgRegistry.addPackage() → notifies listener.
+    // On confirm → calls PkgRegistry.addPackage() → notifies listener.
     // On failure → shows the error; stays open so user can fix it.
 
 // USAGE:
-    // new JavaPkgCreatorDialog (context, registry, listener).show();
+    // new PkgCreatorDialog (context, registry, listener).show();
 
 // =========================================================
 
-public final class JavaPkgCreatorDialog {
+public final class PkgCreatorDialog {
 
 
 
@@ -47,7 +52,7 @@ public final class JavaPkgCreatorDialog {
     // =========================================================
 
     public interface OnPackageCreatedListener {
-        void onPackageCreated (JavaPkgEntry created);
+        void onPackageCreated (PkgEntry created);
     }
 
 
@@ -58,7 +63,7 @@ public final class JavaPkgCreatorDialog {
     // =========================================================
 
     private final Context context;
-    private final JavaPkgRegistry registry;
+    private final PkgRegistry registry;
     private final OnPackageCreatedListener listener;
 
 
@@ -68,14 +73,14 @@ public final class JavaPkgCreatorDialog {
     // CONSTRUCTOR
     // =========================================================
 
-    public JavaPkgCreatorDialog (
+    public PkgCreatorDialog (
         Context context,
-        JavaPkgRegistry registry,
+        PkgRegistry registry,
         OnPackageCreatedListener listener
     ) {
-        if (context  == null) throw new IllegalArgumentException ("JavaPkgCreatorDialog: context must not be null.");
-        if (registry == null) throw new IllegalArgumentException ("JavaPkgCreatorDialog: registry must not be null.");
-        if (listener == null) throw new IllegalArgumentException ("JavaPkgCreatorDialog: listener must not be null.");
+        if (context  == null) throw new IllegalArgumentException ("PkgCreatorDialog: context must not be null.");
+        if (registry == null) throw new IllegalArgumentException ("PkgCreatorDialog: registry must not be null.");
+        if (listener == null) throw new IllegalArgumentException ("PkgCreatorDialog: listener must not be null.");
 
         this.context  = context;
         this.registry = registry;
@@ -112,7 +117,7 @@ public final class JavaPkgCreatorDialog {
             @Override
             public void afterTextChanged (Editable s) {
                 String input = s.toString().trim();
-                JavaPkgValidator.Result result = JavaPkgValidator.validate (
+                PkgValidator.Result result = PkgValidator.validate (
                     input,
                     registry.getAll()
                 );
@@ -134,7 +139,7 @@ public final class JavaPkgCreatorDialog {
             String displayName  = etDisplay.getText().toString().trim();
 
             // Final validation before writing to disk
-            JavaPkgValidator.Result result = JavaPkgValidator.validate (
+            PkgValidator.Result result = PkgValidator.validate (
                 packageName,
                 registry.getAll()
             );
@@ -152,7 +157,7 @@ public final class JavaPkgCreatorDialog {
             }
 
             try {
-                JavaPkgEntry created = registry.addPackage (packageName, displayName);
+                PkgEntry created = registry.addPackage (packageName, displayName);
                 dialog.dismiss();
                 listener.onPackageCreated (created);
             } catch (Exception e) {

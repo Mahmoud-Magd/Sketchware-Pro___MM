@@ -100,4 +100,25 @@ public class FilePathUtil {
     public String getManifestService(String sc_id) {
         return new File(SKETCHWARE_DATA, sc_id + "/service").getAbsolutePath();
     }
+
+
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // NEW: Multi-package support
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    
+    /**
+     * Returns the project files directory.
+     * 
+     * Example: /storage/emulated/0/.sketchware/data/611/files/
+     * 
+     * This is where all user-created packages are stored:
+     * - files/java/        ← main package source root
+     * - files/java_extra/  ← extra packages source roots
+     */
+    public File getProjectFilesDir(String sc_id) {
+        return new File(SKETCHWARE_DATA, sc_id + "/files");
+    }
+
+
+    
 }

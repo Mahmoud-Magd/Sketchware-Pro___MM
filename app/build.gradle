@@ -2,8 +2,8 @@ def secrets = System.getenv("GOOGLE_SERVICES_JSON")
 
 apply plugin: "com.android.application"
 apply plugin: "kotlin-android"
-apply plugin: "com.google.gms.google-services"
-apply plugin: "com.google.firebase.crashlytics"
+// apply plugin: "com.google.gms.google-services"
+// apply plugin: "com.google.firebase.crashlytics"
 
 android {
     compileSdk = 36
@@ -119,12 +119,13 @@ dependencies {
         exclude group: "com.google.guava", module: "guava"
     }
 
-    implementation platform(libs.firebase.bom)
-    implementation libs.bundles.firebase
+    // implementation platform(libs.firebase.bom)
+    // implementation libs.bundles.firebase
 
     coreLibraryDesugaring libs.desugar.jdk.libs.nio
 }
 
+/*
 tasks.register('createMockGoogleServices') {
     doLast {
         if (secrets != null) {
@@ -170,3 +171,4 @@ tasks.register('createMockGoogleServices') {
 }
 
 preBuild.dependsOn createMockGoogleServices
+*/

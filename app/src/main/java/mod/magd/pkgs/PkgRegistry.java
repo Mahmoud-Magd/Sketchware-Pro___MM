@@ -1,4 +1,4 @@
-package pro.sketchware.managers.java;
+package mod.magd.pkgs;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -8,7 +8,7 @@ import java.util.UUID;
 
 
 // =========================================================
-// JavaPkgRegistry
+// PkgRegistry
 // =========================================================
 
 // Central manager for all Java packages belonging to a
@@ -30,18 +30,18 @@ import java.util.UUID;
     // Extra packages → {projectDataDir}/files/java_extra/{packageName}/
 
 // USAGE:
-    // JavaPkgRegistry reg = new JavaPkgRegistry (projectDataDir);
+    // PkgRegistry reg = new PkgRegistry (projectDataDir);
     // reg.addPackage ("com.z.ui", "UI Layer");
-    // ArrayList<JavaPkgEntry> all = reg.getAll();
+    // ArrayList<PkgEntry> all = reg.getAll();
 
 // IMPORTANT:
     // One instance per project session is enough.
     // Not thread-safe — call from the main thread only.
-    // Validation is done via JavaPkgValidator before any mutation.
+    // Validation is done via PkgValidator before any mutation.
 
 // =========================================================
 
-public final class JavaPkgRegistry {
+public final class PkgRegistry {
 
 
 
@@ -71,7 +71,7 @@ public final class JavaPkgRegistry {
 
     // In-memory cache of the registry for this session.
     // Loaded lazily on first access.
-    private ArrayList<JavaPkgEntry> cache;
+    private ArrayList<PkgEntry> cache;
 
 
 
@@ -81,9 +81,9 @@ public final class JavaPkgRegistry {
     // =========================================================
 
     // projectFilesDir → .sketchware/data/{projectId}/files/
-    public JavaPkgRegistry (File projectFilesDir) {
+    public PkgRegistry (File projectFilesDir) {
         if (projectFilesDir == null)
-            throw new IllegalArgumentException ("JavaPkgRegistry: projectFilesDir must not be null.");
+            throw new IllegalArgumentException ("PkgRegistry: projectFilesDir must not be null.");
         this.projectFilesDir = projectFilesDir;
     }
 
@@ -96,7 +96,7 @@ public final class JavaPkgRegistry {
 
     // Returns all packages for this project.
     // Loads from disk on first call; returns cache on subsequent calls.
-    public ArrayList<JavaPkgEntry> getAll() {
+    public ArrayList<PkgEntry> getAll() {
         ensureLoaded();
         return new ArrayList<> (cache); // defensive copy
     }
@@ -104,9 +104,9 @@ public final class JavaPkgRegistry {
     // Returns the main package entry.
     // Guaranteed to exist after migration (Step 8) has run.
     // Returns null only if called before migration on a brand-new project.
-    public JavaPkgEntry getMain() {
+    public PkgEntry getMain() {
         ensureLoaded();
-        for (JavaPkgEntry entry : cache) {
+        for (PkgEntry entry : cache) {
             if ( entry.isMain() ) return entry;
         }
         return null;
@@ -119,20 +119,20 @@ public final class JavaPkgRegistry {
     }
 
     // Returns the entry matching this packageName, or null if not found.
-    public JavaPkgEntry findByName (String packageName) {
+    public PkgEntry findByName (String packageName) {
         ensureLoaded();
         if (packageName == null) return null;
-        for (JavaPkgEntry entry : cache) {
+        for (PkgEntry entry : cache) {
             if ( entry.getPackageName().equals (packageName) ) return entry;
         }
         return null;
     }
 
     // Returns the entry matching this id, or null if not found.
-    public JavaPkgEntry findById (String id) {
+    public PkgEntry findById (String id) {
         ensureLoaded();
         if (id == null) return null;
-        for (JavaPkgEntry entry : cache) {
+        for (PkgEntry entry : cache) {
             if ( entry.getId().equals (id) ) return entry;
         }
         return null;
@@ -149,11 +149,11 @@ public final class JavaPkgRegistry {
     // Validates packageName, creates the source root folder on disk, saves.
     // Returns the newly created entry.
     // Throws IllegalArgumentException if validation fails.
-    // Throws JavaPkgStore.JavaPkgStoreException on I/O failure.
-    public JavaPkgEntry addPackage (String packageName, String displayName) {
+    // Throws PkgStore.PkgStoreException on I/O failure.
+    public PkgEntry addPackage (String packageName, String displayName) {
         ensureLoaded();
 
-        JavaPkgValidator.Result validation = JavaPkgValidator.validate (packageName, cache);
+        PkgValidator.Result validation = PkgValidator.validate (packageName, cache);
         if ( ! validation.isValid() ) {
             throw new IllegalArgumentException (
                 "Cannot add package '" + packageName + "': " + validation.getReason()
@@ -163,7 +163,7 @@ public final class JavaPkgRegistry {
         String sourceRootPath = buildExtraSourceRoot (packageName);
         createFolderOnDisk (sourceRootPath);
 
-        JavaPkgEntry entry = new JavaPkgEntry (
+        PkgEntry entry = new PkgEntry (
             generateId(),
             packageName,
             displayName,
@@ -184,15 +184,15 @@ public final class JavaPkgRegistry {
     public void removePackage (String id) {
         ensureLoaded();
 
-        JavaPkgEntry entry = findById (id);
+        PkgEntry entry = findById (id);
         if (entry == null) {
             throw new IllegalArgumentException (
-                "JavaPkgRegistry.removePackage(): no entry found with id '" + id + "'."
+                "PkgRegistry.removePackage(): no entry found with id '" + id + "'."
             );
         }
         if ( entry.isMain() ) {
             throw new IllegalStateException (
-                "JavaPkgRegistry.removePackage(): the main package cannot be removed."
+                "PkgRegistry.removePackage(): the main package cannot be removed."
             );
         }
 
@@ -206,10 +206,10 @@ public final class JavaPkgRegistry {
     public void renameDisplay (String id, String newDisplayName) {
         ensureLoaded();
 
-        JavaPkgEntry entry = findById (id);
+        PkgEntry entry = findById (id);
         if (entry == null) {
             throw new IllegalArgumentException (
-                "JavaPkgRegistry.renameDisplay(): no entry found with id '" + id + "'."
+                "PkgRegistry.renameDisplay(): no entry found with id '" + id + "'."
             );
         }
 
@@ -218,20 +218,20 @@ public final class JavaPkgRegistry {
     }
 
     // Seeds the registry with a single main package entry.
-    // Called by JavaPkgMigrator (Step 8) on first open of an existing project.
+    // Called by PkgMigrator (Step 8) on first open of an existing project.
     // Throws IllegalStateException if a main entry already exists.
     public void seedMainPackage (String packageName, String displayName) {
         ensureLoaded();
 
         if (getMain() != null) {
             throw new IllegalStateException (
-                "JavaPkgRegistry.seedMainPackage(): main package already exists."
+                "PkgRegistry.seedMainPackage(): main package already exists."
             );
         }
 
         String sourceRootPath = buildMainSourceRoot();
 
-        JavaPkgEntry mainEntry = new JavaPkgEntry (
+        PkgEntry mainEntry = new PkgEntry (
             generateId(),
             packageName,
             displayName,
@@ -256,7 +256,7 @@ public final class JavaPkgRegistry {
     }
 
     // Returns true if the registry file exists on disk.
-    // Used by JavaPkgMigrator to detect first-time projects.
+    // Used by PkgMigrator to detect first-time projects.
     public boolean isRegistryPresent() {
         return getRegistryFile().exists();
     }
@@ -275,12 +275,12 @@ public final class JavaPkgRegistry {
 
     private void ensureLoaded() {
         if (cache == null) {
-            cache = JavaPkgStore.read ( getRegistryFile() );
+            cache = PkgStore.read ( getRegistryFile() );
         }
     }
 
     private void persistCache() {
-        JavaPkgStore.write ( getRegistryFile(), cache );
+        PkgStore.write ( getRegistryFile(), cache );
     }
 
 
@@ -314,7 +314,7 @@ public final class JavaPkgRegistry {
         if ( ! folder.exists() ) {
             boolean created = folder.mkdirs();
             if (!created) {
-                throw new JavaPkgStore.JavaPkgStoreException (
+                throw new PkgStore.PkgStoreException (
                     "Failed to create source root folder: " + absolutePath
                 );
             }

@@ -3,10 +3,14 @@ package mod.magd.pkgs.migration;
 import java.io.File;
 import java.util.UUID;
 
+import a.a.a.jC;
+import a.a.a.yq;
+
 import mod.magd.pkgs.PkgEntry;
-import mod.magd.pkgs.PkgRegistry;
+import mod.magd.pkgs.PkgStore;
 
 import mod.jbk.util.LogUtil;
+
 import pro.sketchware.utility.FilePathUtil;
 import pro.sketchware.utility.FileUtil;
 
@@ -34,6 +38,7 @@ import pro.sketchware.utility.FileUtil;
     // 3. If NO → create the registry with the main package entry
     // 4. Main entry has: isMain=true, sourceRootPath=files/java/
     // 5. Files stay untouched on disk
+    // 6. Main package name comes from: yq.packageName (loaded from project)
 
 // USAGE:
     // In ManageJavaActivity.onCreate():
@@ -65,6 +70,9 @@ public final class PkgMigrator {
     // Checks if the project has been migrated.
     // If not, performs migration silently.
     // Safe to call multiple times — idempotent.
+    //
+    // sc_id: The project's unique identifier
+    //   The main package name is loaded from the project metadata
     public static void ensureMigrated (String sc_id) {
         if (sc_id == null || sc_id.isEmpty()) {
             LogUtil.w(TAG, "ensureMigrated: sc_id is null or empty. Skipping migration.");
@@ -72,9 +80,8 @@ public final class PkgMigrator {
         }
 
         try {
-            File projectFilesDir = new File (
-                FileUtil.getExternalStorageDir() + "/.sketchware/data/" + sc_id + "/files"
-            );
+            FilePathUtil fpu = new FilePathUtil();
+            File projectFilesDir = fpu.getProjectFilesDir(sc_id);
 
             if ( !projectFilesDir.exists() ) {
                 LogUtil.w(TAG, "ensureMigrated: project files directory does not exist: " + projectFilesDir);
@@ -90,21 +97,26 @@ public final class PkgMigrator {
                 return;
             }
 
-            LogUtil.d(TAG, "Project " + sc_id + " needs migration. Creating registry...");
+            // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+            // Step 2: Load the project's main package name
+            // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+            // yq loads the project metadata from disk
+            yq projectYq = new yq(null, sc_id);
+            
+            // Load required managers for yq initialization
+            var fileManager = jC.b(sc_id);
+            var dataManager = jC.a(sc_id);
+            var libraryManager = jC.c(sc_id);
+            
+            projectYq.a(libraryManager, fileManager, dataManager, yq.ExportType.APK);
+            
+            String mainPackageName = projectYq.packageName;
+            
+            LogUtil.d(TAG, "Project " + sc_id + " needs migration. Creating registry with main package: " + mainPackageName);
 
             // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-            // Step 2: Get the app's main package name
+            // Step 3: Create the main package entry
             // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-            // We need this to create the main package entry.
-            // It's stored in the project's metadata. For now,
-            // we'll use a sensible default if we can't find it.
-            String mainPackageName = getMainPackageNameForProject(sc_id);
-
-            // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-            // Step 3: Create and register the main package entry
-            // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-            PkgRegistry registry = new PkgRegistry(projectFilesDir);
-
             // The main package uses the existing files/java/ folder
             String sourceRootPath = projectFilesDir.getAbsolutePath() + "/java";
 
@@ -116,10 +128,14 @@ public final class PkgMigrator {
                 true                            // isMain = true
             );
 
-            // Add the main entry to the registry and save
-            registry.cache = new java.util.ArrayList<>();
-            registry.cache.add(mainEntry);
-            registry.save();
+            // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+            // Step 4: Save to registry file
+            // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+            java.util.ArrayList<PkgEntry> entries = new java.util.ArrayList<>();
+            entries.add(mainEntry);
+
+            // Use PkgStore to write (internal API)
+            PkgStore.write(registryFile, entries);
 
             LogUtil.d(TAG, "Migration complete for project " + sc_id + " with package " + mainPackageName);
 
@@ -128,49 +144,10 @@ public final class PkgMigrator {
             // Don't throw — let the app continue. Worst case, user creates the file manually.
         }
     }
-
-
-
-
-    // =========================================================
-    // PRIVATE
-    // =========================================================
-
-    // Attempts to retrieve the project's main package name.
-    // Returns a sensible default if it can't find it.
-    private static String getMainPackageNameForProject (String sc_id) {
-        try {
-            // Try to read from project metadata
-            FilePathUtil fpu = new FilePathUtil();
-            // This path may vary — adjust if needed based on your actual metadata location
-            String metadataPath = fpu.getPathSketchware(sc_id) + "/project.json";
-
-            if (FileUtil.isExistFile(metadataPath)) {
-                String content = FileUtil.readFile(metadataPath);
-                // Parse JSON to find packageName
-                // For now, using a simple regex — a proper JSON parser is better
-                java.util.regex.Pattern p = java.util.regex.Pattern.compile("\"packageName\"\\s*:\\s*\"([^\"]+)\"");
-                java.util.regex.Matcher m = p.matcher(content);
-                if (m.find()) {
-                    String found = m.group(1);
-                    LogUtil.d(TAG, "Found main package name: " + found);
-                    return found;
-                }
-            }
-        } catch (Exception e) {
-            LogUtil.w(TAG, "Could not read project metadata: " + e.getMessage());
-        }
-
-        // Fallback: use a generic default based on sc_id
-        String fallback = "com.sketchware.project." + sc_id;
-        LogUtil.d(TAG, "Using fallback package name: " + fallback);
-        return fallback;
-    }
-
-
-
-
-  
+    
+    
+    
+    
 }
 
 

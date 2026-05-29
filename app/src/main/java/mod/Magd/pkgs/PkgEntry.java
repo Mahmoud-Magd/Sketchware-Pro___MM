@@ -1,10 +1,10 @@
-package pro.sketchware.managers.java;
+package mod.magd.pkgs;
 
 
 
 
 // =========================================================
-// JavaPkgEntry
+// PkgEntry
 // =========================================================
 
 // Data model representing a single user-defined Java package
@@ -24,7 +24,7 @@ package pro.sketchware.managers.java;
 
 // =========================================================
 
-public final class JavaPkgEntry {
+public final class PkgEntry {
 
 
 
@@ -75,7 +75,7 @@ public final class JavaPkgEntry {
     // CONSTRUCTOR
     // =========================================================
 
-    public JavaPkgEntry (
+    public PkgEntry (
         String id,
         String packageName,
         String displayName,
@@ -83,11 +83,11 @@ public final class JavaPkgEntry {
         boolean isMain
     ) {
         if (id == null || id.isEmpty())
-            throw new IllegalArgumentException ("JavaPkgEntry: id must not be null or empty.");
+            throw new IllegalArgumentException ("PkgEntry: id must not be null or empty.");
         if (packageName == null || packageName.isEmpty())
-            throw new IllegalArgumentException ("JavaPkgEntry: packageName must not be null or empty.");
+            throw new IllegalArgumentException ("PkgEntry: packageName must not be null or empty.");
         if (sourceRootPath == null || sourceRootPath.isEmpty())
-            throw new IllegalArgumentException ("JavaPkgEntry: sourceRootPath must not be null or empty.");
+            throw new IllegalArgumentException ("PkgEntry: sourceRootPath must not be null or empty.");
 
         this.id             = id;
         this.packageName    = packageName;
@@ -123,7 +123,7 @@ public final class JavaPkgEntry {
     // to avoid desync between the folder on disk and the model.
     public void setDisplayName (String displayName) {
         if (displayName == null || displayName.isEmpty())
-            throw new IllegalArgumentException ("JavaPkgEntry: displayName must not be null or empty.");
+            throw new IllegalArgumentException ("PkgEntry: displayName must not be null or empty.");
         this.displayName = displayName;
     }
 
@@ -144,7 +144,7 @@ public final class JavaPkgEntry {
 
     @Override
     public String toString() {
-        return "JavaPkgEntry{"
+        return "PkgEntry{"
             + "id='"             + id             + '\''
             + ", packageName='"  + packageName     + '\''
             + ", displayName='"  + displayName     + '\''

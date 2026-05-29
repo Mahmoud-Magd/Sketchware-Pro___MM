@@ -12,7 +12,9 @@ import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.view.animation.OvershootInterpolator;
 import android.widget.Button;
+import android.widget.LinearLayout;
 import android.widget.PopupMenu;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
@@ -35,6 +37,11 @@ import dev.pranav.filepicker.FilePickerDialogFragment;
 import dev.pranav.filepicker.FilePickerOptions;
 import mod.hey.studios.code.SrcCodeEditor;
 import mod.hey.studios.util.Helper;
+import mod.magd.pkgs.PkgEntry;
+import mod.magd.pkgs.PkgRegistry;
+import mod.magd.pkgs.dialogs.PkgCreatorDialog;
+import mod.magd.pkgs.dialogs.PkgPickerDialog;
+import mod.magd.pkgs.migration.PkgMigrator;
 import pro.sketchware.R;
 import pro.sketchware.databinding.DialogCreateNewFileLayoutBinding;
 import pro.sketchware.databinding.DialogInputLayoutBinding;
@@ -103,6 +110,13 @@ public class ManageJavaActivity extends BaseAppCompatActivity {
     private String sc_id;
     private FilesAdapter filesAdapter;
 
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // NEW: Multi-package fields
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    private PkgRegistry pkgRegistry;
+    private PkgEntry activePackage;
+    private File projectFilesDir;
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         enableEdgeToEdgeNoContrast();
@@ -115,13 +129,30 @@ public class ManageJavaActivity extends BaseAppCompatActivity {
         setupUI();
         frc = new FileResConfig(sc_id);
         fpu = new FilePathUtil();
-        current_path = Uri.parse(fpu.getPathJava(sc_id)).getPath();
+        
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        // NEW: Initialize multi-package system
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        String mainPackageName = getIntent().getStringExtra("pkgName");
+        projectFilesDir = fpu.getProjectFilesDir (sc_id);
+        
+        // Ensure migration has run (creates java_pkgs.json if needed)
+        PkgMigrator.ensureMigrated (sc_id);
+        
+        // Load the package registry
+        pkgRegistry = new PkgRegistry (projectFilesDir);
+        activePackage = pkgRegistry.getMain(); // Start with main package
+        
+        // Update UI to show active package
+        updatePackageHeader();
+        
+        current_path = activePackage.getSourceRootPath();
         refresh();
     }
 
     @Override
     public void onBackPressed() {
-        if (Objects.equals(Uri.parse(current_path).getPath(), Uri.parse(fpu.getPathJava(sc_id)).getPath())) {
+        if (Objects.equals(current_path, activePackage.getSourceRootPath())) {
             super.onBackPressed();
         } else {
             current_path = current_path.substring(0, current_path.lastIndexOf("/"));
@@ -142,21 +173,133 @@ public class ManageJavaActivity extends BaseAppCompatActivity {
             showImportDialog();
             hideShowOptionsButton(true);
         });
+    }
 
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // NEW: Package header UI
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    private void updatePackageHeader() {
+        if (activePackage == null) {
+            return;
+        }
+
+        // Add package header above file list if not already present
+        if (binding.filesListRecyclerView.getParent() instanceof LinearLayout parent) {
+            View existingHeader = parent.findViewWithTag("pkg_header");
+            if (existingHeader != null) {
+                parent.removeView(existingHeader);
+            }
+        }
+
+        // Create header layout
+        LinearLayout headerLayout = new LinearLayout(this);
+        headerLayout.setTag("pkg_header");
+        headerLayout.setOrientation(LinearLayout.VERTICAL);
+        headerLayout.setPadding(16, 16, 16, 16);
+        headerLayout.setBackgroundColor(0xFFF5F5F5);
+
+        // Current package TextView
+        TextView tvCurrentPackage = new TextView(this);
+        tvCurrentPackage.setText("Current package: " + activePackage.getPackageName());
+        tvCurrentPackage.setTextSize(14f);
+        tvCurrentPackage.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
+        tvCurrentPackage.setTextColor(0xFF212121);
+        headerLayout.addView(tvCurrentPackage);
+
+        // Button layout (Choose + New)
+        LinearLayout buttonLayout = new LinearLayout(this);
+        buttonLayout.setOrientation(LinearLayout.HORIZONTAL);
+        buttonLayout.setLayoutParams(new LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        ));
+        buttonLayout.setPadding(0, 12, 0, 0);
+
+        // Choose package button
+        Button btnChoosePackage = new Button(this);
+        btnChoosePackage.setText("Choose Package");
+        btnChoosePackage.setLayoutParams(new LinearLayout.LayoutParams(
+            0,
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+            1
+        ));
+        btnChoosePackage.setOnClickListener(v -> showPackagePickerDialog());
+        buttonLayout.addView(btnChoosePackage);
+
+        // Spacer
+        View spacer = new View(this);
+        spacer.setLayoutParams(new LinearLayout.LayoutParams(8, 0));
+        buttonLayout.addView(spacer);
+
+        // New package button
+        Button btnNewPackage = new Button(this);
+        btnNewPackage.setText("New Package");
+        btnNewPackage.setLayoutParams(new LinearLayout.LayoutParams(
+            0,
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+            1
+        ));
+        btnNewPackage.setOnClickListener(v -> showPackageCreatorDialog());
+        buttonLayout.addView(btnNewPackage);
+
+        headerLayout.addView(buttonLayout);
+
+        // Divider
+        View divider = new View(this);
+        divider.setLayoutParams(new LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            1
+        ));
+        divider.setBackgroundColor(0xFFE0E0E0);
+        headerLayout.addView(divider);
+
+        // Insert header at top of RecyclerView's parent
+        if (binding.filesListRecyclerView.getParent() instanceof LinearLayout parent) {
+            parent.addView(headerLayout, 0);
+        }
+    }
+
+    private void showPackagePickerDialog() {
+        new PkgPickerDialog(
+            this,
+            pkgRegistry,
+            activePackage,
+            (pickedEntry) -> {
+                activePackage = pickedEntry;
+                current_path = activePackage.getSourceRootPath();
+                updatePackageHeader();
+                refresh();
+            }
+        ).show();
+    }
+
+    private void showPackageCreatorDialog() {
+        new PkgCreatorDialog(
+            this,
+            pkgRegistry,
+            (created) -> {
+                activePackage = created;
+                current_path = activePackage.getSourceRootPath();
+                updatePackageHeader();
+                refresh();
+            }
+        ).show();
     }
 
     private void hideShowOptionsButton(boolean isHide) {
         binding.optionsLayout.animate().translationY(isHide ? 300 : 0).alpha(isHide ? 0 : 1).setInterpolator(new OvershootInterpolator());
-
         binding.showOptionsButton.animate().translationY(isHide ? 0 : 300).alpha(isHide ? 1 : 0).setInterpolator(new OvershootInterpolator());
     }
 
     private String getCurrentPkgName() {
-        String pkgName = getIntent().getStringExtra("pkgName");
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        // CHANGED: Use active package name instead of app's main pkg
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        String basePkgName = activePackage.getPackageName();
 
         try {
-            String trimmedPath = Helper.trimPath(fpu.getPathJava(sc_id));
-            String substring = current_path.substring(current_path.indexOf(trimmedPath) + trimmedPath.length());
+            String sourceRoot = activePackage.getSourceRootPath();
+            String substring = current_path.substring(current_path.indexOf(sourceRoot) + sourceRoot.length());
 
             if (substring.endsWith("/")) {
                 substring = substring.substring(0, substring.length() - 1);
@@ -167,9 +310,9 @@ public class ManageJavaActivity extends BaseAppCompatActivity {
             }
 
             String replace = substring.replace("/", ".");
-            return replace.isEmpty() ? pkgName : pkgName + "." + replace;
+            return replace.isEmpty() ? basePkgName : basePkgName + "." + replace;
         } catch (Exception e) {
-            return pkgName;
+            return basePkgName;
         }
     }
 
@@ -330,8 +473,8 @@ public class ManageJavaActivity extends BaseAppCompatActivity {
     }
 
     private void refresh() {
-        if (!FileUtil.isExistFile(fpu.getPathJava(sc_id))) {
-            FileUtil.makeDir(fpu.getPathJava(sc_id));
+        if (!FileUtil.isExistFile(current_path)) {
+            FileUtil.makeDir(current_path);
             refresh();
         }
 
@@ -547,4 +690,11 @@ public class ManageJavaActivity extends BaseAppCompatActivity {
             }
         }
     }
+    
+    
+    
+    
+    
 }
+
+

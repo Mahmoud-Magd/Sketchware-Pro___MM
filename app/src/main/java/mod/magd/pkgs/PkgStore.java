@@ -1,4 +1,4 @@
-package pro.sketchware.managers.java;
+package mod.magd.pkgs;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -16,7 +16,7 @@ import java.util.ArrayList;
 
 
 // =========================================================
-// JavaPkgStore
+// PkgStore
 // =========================================================
 
 // Low-level I/O layer for the per-project package registry file.
@@ -41,11 +41,11 @@ import java.util.ArrayList;
 
 // IMPORTANT:
     // Internal infrastructure — not for direct UI use.
-    // All callers should go through JavaPkgRegistry.
+    // All callers should go through PkgRegistry.
 
 // =========================================================
 
-public final class JavaPkgStore {
+public final class PkgStore {
 
 
 
@@ -67,7 +67,7 @@ public final class JavaPkgStore {
     // CONSTRUCTOR
     // =========================================================
 
-    private JavaPkgStore() {}
+    private PkgStore() {}
 
 
 
@@ -78,12 +78,12 @@ public final class JavaPkgStore {
 
     // Reads the registry file and returns all entries.
     // Returns an empty list (not null) if the file doesn't exist yet.
-    // Throws JavaPkgStoreException if the file exists but is malformed.
-    public static ArrayList<JavaPkgEntry> read (File registryFile) {
+    // Throws PkgStoreException if the file exists but is malformed.
+    public static ArrayList<PkgEntry> read (File registryFile) {
         if (registryFile == null)
-            throw new IllegalArgumentException ("JavaPkgStore.read(): registryFile must not be null.");
+            throw new IllegalArgumentException ("PkgStore.read(): registryFile must not be null.");
 
-        ArrayList<JavaPkgEntry> result = new ArrayList<>();
+        ArrayList<PkgEntry> result = new ArrayList<>();
 
         if ( ! registryFile.exists() ) return result;
 
@@ -96,7 +96,7 @@ public final class JavaPkgStore {
                 result.add ( parseEntry (obj) );
             }
         } catch (JSONException e) {
-            throw new JavaPkgStoreException (
+            throw new PkgStoreException (
                 "Failed to parse java_pkgs.json at: "
                 + registryFile.getAbsolutePath()
                 + " — " + e.getMessage()
@@ -108,17 +108,17 @@ public final class JavaPkgStore {
 
     // Serializes all entries and writes them to the registry file.
     // Creates parent directories if they don't exist.
-    // Throws JavaPkgStoreException on I/O failure.
-    public static void write (File registryFile, ArrayList<JavaPkgEntry> entries) {
+    // Throws PkgStoreException on I/O failure.
+    public static void write (File registryFile, ArrayList<PkgEntry> entries) {
         if (registryFile == null)
-            throw new IllegalArgumentException ("JavaPkgStore.write(): registryFile must not be null.");
+            throw new IllegalArgumentException ("PkgStore.write(): registryFile must not be null.");
         if (entries == null)
-            throw new IllegalArgumentException ("JavaPkgStore.write(): entries must not be null.");
+            throw new IllegalArgumentException ("PkgStore.write(): entries must not be null.");
 
         ensureParentExists (registryFile);
 
         JSONArray array = new JSONArray();
-        for (JavaPkgEntry entry : entries) {
+        for (PkgEntry entry : entries) {
             array.put ( serializeEntry (entry) );
         }
 
@@ -132,8 +132,8 @@ public final class JavaPkgStore {
     // PRIVATE — Parse & Serialize
     // =========================================================
 
-    private static JavaPkgEntry parseEntry (JSONObject obj) throws JSONException {
-        return new JavaPkgEntry (
+    private static PkgEntry parseEntry (JSONObject obj) throws JSONException {
+        return new PkgEntry (
             obj.getString  (KEY_ID),
             obj.getString  (KEY_PACKAGE_NAME),
             obj.getString  (KEY_DISPLAY_NAME),
@@ -142,7 +142,7 @@ public final class JavaPkgStore {
         );
     }
 
-    private static JSONObject serializeEntry (JavaPkgEntry entry) {
+    private static JSONObject serializeEntry (PkgEntry entry) {
         JSONObject obj = new JSONObject();
         try {
             obj.put (KEY_ID,           entry.getId());
@@ -152,7 +152,7 @@ public final class JavaPkgStore {
             obj.put (KEY_IS_MAIN,      entry.isMain());
         } catch (JSONException e) {
             // JSONObject.put() only throws if the key is null — never happens here.
-            throw new RuntimeException ("JavaPkgStore: unexpected JSON serialization error.", e);
+            throw new RuntimeException ("PkgStore: unexpected JSON serialization error.", e);
         }
         return obj;
     }
@@ -172,7 +172,7 @@ public final class JavaPkgStore {
                 sb.append (line);
             }
         } catch (IOException e) {
-            throw new JavaPkgStoreException (
+            throw new PkgStoreException (
                 "Failed to read java_pkgs.json: " + e.getMessage()
             );
         }
@@ -183,7 +183,7 @@ public final class JavaPkgStore {
         try (BufferedWriter writer = new BufferedWriter (new FileWriter (file, false))) {
             writer.write (content);
         } catch (IOException e) {
-            throw new JavaPkgStoreException (
+            throw new PkgStoreException (
                 "Failed to write java_pkgs.json: " + e.getMessage()
             );
         }
@@ -194,7 +194,7 @@ public final class JavaPkgStore {
         if (parent != null && !parent.exists()) {
             boolean created = parent.mkdirs();
             if (!created) {
-                throw new JavaPkgStoreException (
+                throw new PkgStoreException (
                     "Failed to create directory: " + parent.getAbsolutePath()
                 );
             }
@@ -211,8 +211,8 @@ public final class JavaPkgStore {
     // Unchecked so callers don't need try-catch everywhere,
     // but still typed so UI can catch it specifically and show
     // a proper error message instead of a generic crash.
-    public static final class JavaPkgStoreException extends RuntimeException {
-        public JavaPkgStoreException (String message) {
+    public static final class PkgStoreException extends RuntimeException {
+        public PkgStoreException (String message) {
             super (message);
         }
     }
@@ -221,3 +221,5 @@ public final class JavaPkgStore {
 
 
 }
+
+

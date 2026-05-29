@@ -1,4 +1,4 @@
-package pro.sketchware.managers.java;
+package mod.magd.pkgs;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -9,7 +9,7 @@ import java.util.Set;
 
 
 // =========================================================
-// JavaPkgValidator
+// PkgValidator
 // =========================================================
 
 // Validates a user-supplied package name before it is added
@@ -34,12 +34,12 @@ import java.util.Set;
     // 8. Not a duplicate of the main package.
 
 // USAGE:
-    // JavaPkgValidator.Result r = JavaPkgValidator.validate (input, existingEntries);
+    // PkgValidator.Result r = PkgValidator.validate (input, existingEntries);
     // if (!r.isValid()) showError (r.getReason());
 
 // =========================================================
 
-public final class JavaPkgValidator {
+public final class PkgValidator {
 
 
 
@@ -78,7 +78,7 @@ public final class JavaPkgValidator {
     // CONSTRUCTOR
     // =========================================================
 
-    private JavaPkgValidator() {}
+    private PkgValidator() {}
 
 
 
@@ -89,7 +89,7 @@ public final class JavaPkgValidator {
 
     // Validates the given packageName against the existing registry entries.
     // existingEntries may be null or empty (treated as empty).
-    public static Result validate (String packageName, ArrayList<JavaPkgEntry> existingEntries) {
+    public static Result validate (String packageName, ArrayList<PkgEntry> existingEntries) {
 
         // ── Rule 1: Not null/empty/blank ──────────────────────
         if (packageName == null || packageName.trim().isEmpty()) {
@@ -132,7 +132,7 @@ public final class JavaPkgValidator {
 
         // ── Rule 7: No duplicates ─────────────────────────────
         if (existingEntries != null) {
-            for (JavaPkgEntry existing : existingEntries) {
+            for (PkgEntry existing : existingEntries) {
                 if ( existing.getPackageName().equals (name) ) {
                     return Result.fail (
                         "Package '" + name + "' already exists in this project."
@@ -218,3 +218,5 @@ public final class JavaPkgValidator {
 
 
 }
+
+

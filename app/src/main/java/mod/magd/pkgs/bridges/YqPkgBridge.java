@@ -1,7 +1,13 @@
-package pro.sketchware.managers.java;
+package mod.magd.pkgs.bridges;
 
 import java.io.File;
 import java.util.ArrayList;
+
+
+
+import mod.magd.pkgs.PkgEntry;
+import mod.magd.pkgs.PkgRegistry;
+
 
 
 
@@ -32,8 +38,8 @@ import java.util.ArrayList;
 
 // WHAT THIS CLASS DOES NOT DO:
     // Does NOT modify, subclass, or wrap yq.
-    // Does NOT read/write any JSON — that's JavaPkgStore.
-    // Does NOT validate package names — that's JavaPkgValidator.
+    // Does NOT read/write any JSON — that's PkgStore.
+    // Does NOT validate package names — that's PkgValidator.
 
 // USAGE:
     // File projectFilesDir = new File (".sketchware/data/611/files");
@@ -109,7 +115,7 @@ public final class YqPkgBridge {
     // Returns the source root folder for a specific entry.
     // For the main entry → same as getMainJavaRoot().
     // For extra entries → subfolder inside java_extra/.
-    public File getSourceRootFor (JavaPkgEntry entry) {
+    public File getSourceRootFor (PkgEntry entry) {
         if (entry == null)
             throw new IllegalArgumentException ("YqPkgBridge.getSourceRootFor(): entry must not be null.");
         return new File (entry.getSourceRootPath());
@@ -119,7 +125,7 @@ public final class YqPkgBridge {
     // inside the given package entry's source root.
     // fileName should be just the filename, e.g. "MyClass.java"
     // Does NOT check whether the file actually exists.
-    public File getJavaFileFor (JavaPkgEntry entry, String fileName) {
+    public File getJavaFileFor (PkgEntry entry, String fileName) {
         if (entry == null)
             throw new IllegalArgumentException ("YqPkgBridge.getJavaFileFor(): entry must not be null.");
         if (fileName == null || fileName.isEmpty())
@@ -140,13 +146,13 @@ public final class YqPkgBridge {
     //
     // Order: main root first, then extra roots in registry order.
     // Only includes roots that actually exist on disk.
-    public ArrayList<File> getAllSourceRoots (JavaPkgRegistry registry) {
+    public ArrayList<File> getAllSourceRoots (PkgRegistry registry) {
         if (registry == null)
             throw new IllegalArgumentException ("YqPkgBridge.getAllSourceRoots(): registry must not be null.");
 
         ArrayList<File> roots = new ArrayList<>();
 
-        for (JavaPkgEntry entry : registry.getAll()) {
+        for (PkgEntry entry : registry.getAll()) {
             File root = getSourceRootFor (entry);
             if ( root.exists() && root.isDirectory() ) {
                 roots.add (root);
@@ -159,7 +165,7 @@ public final class YqPkgBridge {
     // Collects all .java files from ALL source roots across
     // ALL packages. Recursively walks each root.
     // Used by Step 7 to build the full file list for compilation.
-    public ArrayList<File> collectAllJavaFiles (JavaPkgRegistry registry) {
+    public ArrayList<File> collectAllJavaFiles (PkgRegistry registry) {
         if (registry == null)
             throw new IllegalArgumentException ("YqPkgBridge.collectAllJavaFiles(): registry must not be null.");
 
@@ -209,3 +215,5 @@ public final class YqPkgBridge {
 
 
 }
+
+

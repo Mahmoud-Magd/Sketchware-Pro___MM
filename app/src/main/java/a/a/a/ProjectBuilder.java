@@ -553,13 +553,28 @@ public class ProjectBuilder {
             args.add(yq.compiledClassesPath);
             args.add("-cp");
             args.add(getClasspath());
+            
+            
+            
             args.add("-proc:none");
             args.add(yq.javaFilesPath);
             args.add(yq.rJavaDirectoryPath);
-            String pathJava = fpu.getPathJava(yq.sc_id);
-            if (FileUtil.isExistFile(pathJava)) {
-                args.add(pathJava);
+            
+            // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+            // NEW: Collect all .java files from ALL packages
+            // (main + extra) for multi-package support
+            // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+            File projectFilesDir = fpu.getProjectFilesDir (yq.sc_id);
+            if (projectFilesDir.exists()) {
+                java.util.ArrayList<File> allJavaFiles = mod.magd.pkgs.ProjectBuilderBridge.collectAllJavaSourceFiles(
+                    yq.sc_id,
+                    projectFilesDir
+                );
+                for (File javaFile : allJavaFiles) {
+                    args.add(javaFile.getAbsolutePath());
+                }
             }
+            
             String pathBroadcast = fpu.getPathBroadcast(yq.sc_id);
             if (FileUtil.isExistFile(pathBroadcast)) {
                 args.add(pathBroadcast);
@@ -568,6 +583,9 @@ public class ProjectBuilder {
             if (FileUtil.isExistFile(pathService)) {
                 args.add(pathService);
             }
+            
+            
+            
 
             /* Avoid "package ;" line in that file causing issues while compiling */
             File rJavaFileWithoutPackage = new File(yq.rJavaDirectoryPath, "R.java");

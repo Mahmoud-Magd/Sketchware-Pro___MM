@@ -19,6 +19,10 @@ import pro.sketchware.R;
 
 
 
+import mod.magd.pkgs.PkgEntry;
+import mod.magd.pkgs.PkgRegistry;
+
+
 
 // =========================================================
 // PkgPickerDialog
@@ -144,7 +148,7 @@ public final class PkgPickerDialog {
         listView.setDivider (null);
         listView.setAdapter ( new PackageAdapter ( registry.getAll() ) );
         listView.setOnItemClickListener ( (parent, view, position, id) -> {
-            JavaPkgEntry picked = (JavaPkgEntry) parent.getItemAtPosition (position);
+            PkgEntry picked = (PkgEntry) parent.getItemAtPosition (position);
             dismiss();
             listener.onPackagePicked (picked);
         });
@@ -205,9 +209,9 @@ public final class PkgPickerDialog {
 
     private final class PackageAdapter extends BaseAdapter {
 
-        private final ArrayList<JavaPkgEntry> entries;
+        private final ArrayList<PkgEntry> entries;
 
-        PackageAdapter (ArrayList<JavaPkgEntry> entries) {
+        PackageAdapter (ArrayList<PkgEntry> entries) {
             this.entries = entries;
         }
 
@@ -221,7 +225,7 @@ public final class PkgPickerDialog {
                 convertView = buildItemView();
             }
 
-            JavaPkgEntry entry = entries.get (position);
+            PkgEntry entry = entries.get (position);
 
             TextView tvDisplay = convertView.findViewById (android.R.id.text1);
             TextView tvPkg     = convertView.findViewById (android.R.id.text2);

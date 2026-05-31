@@ -132,7 +132,8 @@ tasks.register('createMockGoogleServices') {
             new File("$projectDir/google-services.json").text = secrets
             return
         }
-        def mockFile = file("src/debug/google-services.json")
+        // def mockFile = file("src/debug/google-services.json")
+        def mockFile = file ("google-services.json") // Cuz release builds asks for google-services.json too .. it doesn't build unless google-services.json exists
         if (!mockFile.exists()) {
             mockFile.parentFile.mkdirs()
             def mockContent = """{

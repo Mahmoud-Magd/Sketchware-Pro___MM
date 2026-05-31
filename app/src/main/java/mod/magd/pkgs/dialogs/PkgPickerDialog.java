@@ -1,328 +1,265 @@
 package mod.magd.pkgs.dialogs;
 
-import pro.sketchware.R;
-
 import android.content.Context;
-
-import android.app.Dialog;
-import com.google.android.material.dialog.MaterialAlertDialogBuilder;
-
-import pro.sketchware.utility.SketchwareUtil;
-
-import android.view.Gravity;
-import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.Window;
-import android.view.WindowManager;
-
 import android.widget.BaseAdapter;
 import android.widget.ImageView;
-import android.widget.ListView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import java.util.ArrayList;
 
-
-
 import mod.magd.pkgs.PkgEntry;
 import mod.magd.pkgs.PkgRegistry;
-
-
 
 // =========================================================
 // PkgPickerDialog
 // =========================================================
 
-// Dialog that lets the user choose an existing package from
-// the project's registry.
+// Simple dialog for selecting a single package from the registry.
+// Extends PkgBaseDialog to inherit search, layout, and positioning.
 
 // PURPOSE:
-    // Presented when the user taps "Choose package" in the
-    // Java/Kotlin Manager header.
-    // Renders as a bottom-anchored dialog (like a sheet).
-    // Lists all packages — main first, extras below.
-    // Highlights the currently active package.
-    // Calls OnPackagePickedListener on selection.
+//   Allows user to:
+//     - View all packages with search/filter
+//     - See which package is currently active (checkmark icon)
+//     - Click a package to select it
+//     - Get a callback when selection is made
+
+// FEATURES:
+//   - Live search by display name or package name
+//   - Active package highlighted with checkmark + blue text
+//   - Shows package display name + full package name
+//   - Single responsibility: picking only (no delete logic)
 
 // USAGE:
-    // new PkgPickerDialog (
-        // context, registry, activeEntry, listener
-    // ).show();
+//   new PkgPickerDialog(
+//       this,
+//       pkgRegistry,
+//       currentActivePackage,
+//       picked -> {
+//           // Handle picked package
+//           switchToPackage(picked);
+//       }
+//   ).show();
 
 // =========================================================
 
-public final class PkgPickerDialog {
-
-
-
+public final class PkgPickerDialog extends PkgBaseDialog {
 
     // =========================================================
     // INTERFACES
     // =========================================================
 
+    /**
+     * Callback when a package is successfully picked.
+     */
     public interface OnPackagePickedListener {
-        void onPackagePicked (PkgEntry picked);
-        void onPackageDeleted();
+        /**
+         * Called when user selects a package from the picker.
+         *
+         * @param picked The selected package entry
+         */
+        void onPackagePicked(PkgEntry picked);
     }
-
-
-
 
     // =========================================================
     // VARIABLES
     // =========================================================
 
-    private final Context context;
-    private final PkgRegistry registry;
-    private final PkgEntry activeEntry;
+    /** Callback listener for package selection. */
     private final OnPackagePickedListener listener;
-
-    private Dialog dialog;
-
-
-
 
     // =========================================================
     // CONSTRUCTOR
     // =========================================================
 
-    public PkgPickerDialog (
+    /**
+     * Create a new package picker dialog.
+     *
+     * @param context Application context
+     * @param registry Package registry
+     * @param activeEntry Currently active package (may be null)
+     * @param listener Callback when a package is picked
+     */
+    public PkgPickerDialog(
         Context context,
         PkgRegistry registry,
         PkgEntry activeEntry,
         OnPackagePickedListener listener
     ) {
-        if (context  == null) throw new IllegalArgumentException ("PkgPickerDialog: context must not be null.");
-        if (registry == null) throw new IllegalArgumentException ("PkgPickerDialog: registry must not be null.");
-        if (listener == null) throw new IllegalArgumentException ("PkgPickerDialog: listener must not be null.");
-
-        this.context     = context;
-        this.registry    = registry;
-        this.activeEntry = activeEntry;
-        this.listener    = listener;
+        super(context, registry, activeEntry);
+        if (listener == null)
+            throw new IllegalArgumentException(
+                "PkgPickerDialog: listener must not be null."
+            );
+        this.listener = listener;
     }
 
-
-
-
     // =========================================================
-    // PUBLIC
+    // ABSTRACT IMPLEMENTATIONS
     // =========================================================
 
-    public void show() {
-        dialog = new Dialog (context, android.R.style.Theme_Material_Light_Dialog);
-        dialog.requestWindowFeature (Window.FEATURE_NO_TITLE);
-        dialog.setContentView ( buildContentView() );
-
-        positionAtBottom (dialog);
-
-        dialog.show();
+    @Override
+    protected String getTitle() {
+        return "Choose Package";
     }
 
-    public void dismiss() {
-        if (dialog != null && dialog.isShowing()) dialog.dismiss();
+    /**
+     * Create the adapter for displaying packages in the picker.
+     * Each item shows:
+     *   - Display name (e.g., "UI Layer") in dark color, or blue if active
+     *   - Package name (e.g., "com.z.ui") in gray
+     *   - Checkmark icon if this is the active package
+     *
+     * @param entries Filtered list of packages
+     * @return A PackagePickerAdapter
+     */
+    @Override
+    protected BaseAdapter createAdapter(ArrayList<PkgEntry> entries) {
+        return new PackagePickerAdapter(entries);
     }
 
-
-
-
-    // =========================================================
-    // PRIVATE — View Construction
-    // =========================================================
-
-    private View buildContentView() {
-        // Root container
-        android.widget.LinearLayout root = new android.widget.LinearLayout (context);
-        root.setOrientation (android.widget.LinearLayout.VERTICAL);
-        root.setPadding (0, 32, 0, 32);
-        root.setBackgroundColor (0xFFFFFFFF);
-
-        // Title
-        TextView title = new TextView (context);
-        title.setText ("Choose Package");
-        title.setTextSize (16f);
-        title.setTypeface (android.graphics.Typeface.DEFAULT_BOLD);
-        title.setPadding (48, 24, 48, 24);
-        title.setTextColor (0xFF212121);
-        root.addView (title);
-
-        // Divider
-        root.addView ( buildDivider() );
-
-        // Package list
-        ListView listView = new ListView (context);
-        listView.setDivider (null);
-        listView.setAdapter ( new PackageAdapter ( registry.getAll() ) );
-        listView.setOnItemClickListener ( (parent, view, position, id) -> {
-            PkgEntry picked = (PkgEntry) parent.getItemAtPosition (position);
-            dismiss();
-            listener.onPackagePicked (picked);
-        });
-
-        int listHeight = Math.min (registry.getAll().size() * dpToPx (72), dpToPx (360));
-        listView.setLayoutParams ( new ViewGroup.LayoutParams (
-            ViewGroup.LayoutParams.MATCH_PARENT,
-            listHeight
-        ));
-        root.addView (listView);
-
-        return root;
+    /**
+     * Handle item click: select the clicked package and close the dialog.
+     *
+     * @param entry The clicked package
+     */
+    @Override
+    protected void onItemClicked(PkgEntry entry) {
+        dismiss();
+        listener.onPackagePicked(entry);
     }
 
-    private View buildDivider() {
-        View divider = new View (context);
-        divider.setLayoutParams ( new ViewGroup.LayoutParams (
-            ViewGroup.LayoutParams.MATCH_PARENT,
-            1
-        ));
-        divider.setBackgroundColor (0xFFE0E0E0);
-        return divider;
-    }
-
-    private void positionAtBottom (Dialog d) {
-        Window window = d.getWindow();
-        if (window == null) return;
-
-        window.setGravity (Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL);
-        window.setLayout (
-            WindowManager.LayoutParams.MATCH_PARENT,
-            WindowManager.LayoutParams.WRAP_CONTENT
-        );
-
-        WindowManager.LayoutParams params = window.getAttributes();
-        params.y = 0;
-        window.setAttributes (params);
-    }
-
-
-
-
     // =========================================================
-    // PRIVATE — Helpers
+    // INNER — Adapter for Picker List
     // =========================================================
 
-    private int dpToPx (int dp) {
-        float density = context.getResources().getDisplayMetrics().density;
-        return Math.round (dp * density);
-    }
+    /**
+     * Custom adapter for displaying packages in the picker.
+     * Highlights the active package with a blue checkmark.
+     */
+    private final class PackagePickerAdapter extends BaseAdapter {
 
-
-
-
-    // =========================================================
-    // INNER — Adapter
-    // =========================================================
-
-    private final class PackageAdapter extends BaseAdapter {
-
+        /** The packages to display (may be filtered). */
         private final ArrayList<PkgEntry> entries;
 
-        PackageAdapter (ArrayList<PkgEntry> entries) {
+        PackagePickerAdapter(ArrayList<PkgEntry> entries) {
             this.entries = entries;
         }
 
-        @Override public int getCount()              { return entries.size(); }
-        @Override public Object getItem (int pos)    { return entries.get (pos); }
-        @Override public long getItemId (int pos)    { return pos; }
+        @Override
+        public int getCount() {
+            return entries.size();
+        }
 
         @Override
-        public View getView (int position, View convertView, ViewGroup parent) {
+        public Object getItem(int pos) {
+            return entries.get(pos);
+        }
+
+        @Override
+        public long getItemId(int pos) {
+            return pos;
+        }
+
+        @Override
+        public View getView(int position, View convertView, ViewGroup parent) {
+            // Reuse the view if available (performance optimization)
             if (convertView == null) {
                 convertView = buildItemView();
             }
 
-            PkgEntry entry = entries.get (position);
+            // Get the package entry at this position
+            PkgEntry entry = entries.get(position);
 
-            TextView tvDisplay = convertView.findViewById (android.R.id.text1);
-            TextView tvPkg     = convertView.findViewById (android.R.id.text2);
+            // Get references to the TextViews and ImageView
+            TextView tvDisplay = convertView.findViewById(android.R.id.text1);
+            TextView tvPkg = convertView.findViewById(android.R.id.text2);
             ImageView ivActive = (ImageView) convertView.getTag();
 
-            tvDisplay.setText ( entry.getDisplayName() );
-            tvPkg.setText     ( entry.getPackageName() );
+            // Set display name and package name
+            tvDisplay.setText(entry.getDisplayName());
+            tvPkg.setText(entry.getPackageName());
 
+            // Check if this is the active package
             boolean isActive = activeEntry != null
-                && activeEntry.getId().equals (entry.getId());
+                && activeEntry.getId().equals(entry.getId());
 
-            ivActive.setVisibility ( isActive ? View.VISIBLE : View.INVISIBLE );
-            tvDisplay.setTextColor  ( isActive ? 0xFF1565C0 : 0xFF212121 );
+            // Show/hide the checkmark icon based on active state
+            ivActive.setVisibility(isActive ? View.VISIBLE : View.INVISIBLE);
 
-
-            // delete
-            if (!entry.isMain()) {
-                convertView.setOnLongClickListener(v -> {
-                    new MaterialAlertDialogBuilder(context)
-                        .setTitle("Delete package?")
-                        .setMessage(entry.getPackageName())
-                        .setPositiveButton("Delete", (d, w) -> {
-                            try {
-                                registry.removePackage(entry.getId());
-                                dismiss();  // Close dialog
-                                listener.onPackageDeleted();  // Callback to refresh UI
-                            } catch (Exception e) {
-                                SketchwareUtil.toastError(e.getMessage());
-                            }
-                        })
-                        .setNegativeButton("Cancel", null)
-                        .show();
-                    return true;
-                });
-            }
-
-
-            
+            // Color the display name blue if active, dark gray otherwise
+            tvDisplay.setTextColor(isActive ? 0xFF1565C0 : 0xFF212121);
 
             return convertView;
         }
 
-
-        
-
+        /**
+         * Build the view for a single package item.
+         * Layout:
+         *   [Display Name (14sp)]
+         *   [Package Name (12sp, gray)]
+         *   [Checkmark Icon] →
+         *
+         * @return The item view
+         */
         private View buildItemView() {
-            android.widget.LinearLayout row = new android.widget.LinearLayout (context);
-            row.setOrientation (android.widget.LinearLayout.HORIZONTAL);
-            row.setPadding (48, 20, 48, 20);
-            row.setGravity (android.view.Gravity.CENTER_VERTICAL);
+            // Root horizontal container
+            LinearLayout row = new LinearLayout(context);
+            row.setOrientation(LinearLayout.HORIZONTAL);
+            row.setPadding(dpToPx(48), dpToPx(20), dpToPx(48), dpToPx(20));
+            row.setGravity(android.view.Gravity.CENTER_VERTICAL);
 
-            // Text block
-            android.widget.LinearLayout textBlock = new android.widget.LinearLayout (context);
-            textBlock.setOrientation (android.widget.LinearLayout.VERTICAL);
-            android.widget.LinearLayout.LayoutParams textParams =
-                new android.widget.LinearLayout.LayoutParams (0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
-            textBlock.setLayoutParams (textParams);
+            // ═════════════════════════════════════════════════════════════════════
+            // Text block (display name + package name)
+            // ═════════════════════════════════════════════════════════════════════
+            LinearLayout textBlock = new LinearLayout(context);
+            textBlock.setOrientation(LinearLayout.VERTICAL);
+            LinearLayout.LayoutParams textParams =
+                new LinearLayout.LayoutParams(
+                    0,
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                    1f // weight=1 (takes remaining space)
+                );
+            textBlock.setLayoutParams(textParams);
 
-            TextView tvDisplay = new TextView (context);
-            tvDisplay.setId (android.R.id.text1);
-            tvDisplay.setTextSize (14f);
-            tvDisplay.setTextColor (0xFF212121);
-            textBlock.addView (tvDisplay);
+            // Display name (main label)
+            TextView tvDisplay = new TextView(context);
+            tvDisplay.setId(android.R.id.text1);
+            tvDisplay.setTextSize(14f);
+            tvDisplay.setTextColor(0xFF212121); // Dark gray
+            textBlock.addView(tvDisplay);
 
-            TextView tvPkg = new TextView (context);
-            tvPkg.setId (android.R.id.text2);
-            tvPkg.setTextSize (12f);
-            tvPkg.setTextColor (0xFF757575);
-            textBlock.addView (tvPkg);
+            // Package name (secondary label)
+            TextView tvPkg = new TextView(context);
+            tvPkg.setId(android.R.id.text2);
+            tvPkg.setTextSize(12f);
+            tvPkg.setTextColor(0xFF757575); // Medium gray
+            textBlock.addView(tvPkg);
 
-            row.addView (textBlock);
+            row.addView(textBlock);
 
-            // Active checkmark
-            ImageView ivActive = new ImageView (context);
-            ivActive.setImageResource (android.R.drawable.checkbox_on_background);
-            ivActive.setVisibility (View.INVISIBLE);
-            android.widget.LinearLayout.LayoutParams iconParams =
-                new android.widget.LinearLayout.LayoutParams (dpToPx (24), dpToPx (24));
-            iconParams.setMarginStart (16);
-            ivActive.setLayoutParams (iconParams);
+            // ═════════════════════════════════════════════════════════════════════
+            // Checkmark icon (right side)
+            // ═════════════════════════════════════════════════════════════════════
+            ImageView ivActive = new ImageView(context);
+            ivActive.setImageResource(android.R.drawable.checkbox_on_background);
+            ivActive.setVisibility(View.INVISIBLE); // Hidden by default
+            LinearLayout.LayoutParams iconParams =
+                new LinearLayout.LayoutParams(
+                    dpToPx(24),
+                    dpToPx(24)
+                );
+            iconParams.setMarginStart(dpToPx(16));
+            ivActive.setLayoutParams(iconParams);
 
-            row.setTag (ivActive);
-            row.addView (ivActive);
+            // Store the ImageView reference in the row's tag for later access
+            row.setTag(ivActive);
+            row.addView(ivActive);
 
             return row;
         }
-
     }
-
-
-
-
 }

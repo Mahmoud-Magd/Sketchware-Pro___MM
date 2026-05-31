@@ -4,44 +4,52 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.UUID;
 
+import mod.magd.pkgs.refactor.PkgRefactoringManager;
+
+import mod.jbk.util.LogUtil;
+
 
 
 
 // =========================================================
-// PkgRegistry
+// PkgRegistry (EXTENDED)
 // =========================================================
 
 // Central manager for all Java packages belonging to a
 // Sketchware project.
 
 // PURPOSE:
-    // The single source of truth for package operations:
-        // loading and saving the package list
-        // adding new packages (validation → folder → save)
-        // removing packages (folder cleanup → save)
-        // querying packages by id or name
-        // building file paths for the registry and source roots
+//     // The single source of truth for package operations:
+//         // loading and saving the package list
+//         // adding new packages (validation → folder → save)
+//         // removing packages (folder cleanup → save)
+//         // querying packages by id or name
+//         // building file paths for the registry and source roots
+//         // renaming packages (with full file refactoring)
 
 // REGISTRY FILE (per project):
-    // {projectDataDir}/files/java_pkgs.json
+//     // {projectDataDir}/files/java_pkgs.json
 
 // SOURCE ROOT LAYOUT:
-    // Main package   → {projectDataDir}/files/java/
-    // Extra packages → {projectDataDir}/files/java_extra/{packageName}/
+//     // Main package   → {projectDataDir}/files/java/
+//     // Extra packages → {projectDataDir}/files/java_extra/{packageName}/
 
 // USAGE:
-    // PkgRegistry reg = new PkgRegistry (projectDataDir);
-    // reg.addPackage ("com.z.ui", "UI Layer");
-    // ArrayList<PkgEntry> all = reg.getAll();
+//     // PkgRegistry reg = new PkgRegistry (projectDataDir);
+//     // reg.addPackage ("com.z.ui", "UI Layer");
+//     // ArrayList<PkgEntry> all = reg.getAll();
+//     // reg.renamePackage ("com.z.ui", "com.z.ui2");  // full refactoring
 
 // IMPORTANT:
-    // One instance per project session is enough.
-    // Not thread-safe — call from the main thread only.
-    // Validation is done via PkgValidator before any mutation.
+//     // One instance per project session is enough.
+//     // Not thread-safe — call from the main thread only.
+//     // Validation is done via PkgValidator before any mutation.
 
 // =========================================================
 
 public final class PkgRegistry {
+
+    private static final String TAG = "PkgRegistry";
 
 
 
@@ -215,6 +223,157 @@ public final class PkgRegistry {
 
         entry.setDisplayName (newDisplayName);
         persistCache();
+    }
+
+    // Renames a package's actual packageName (with full refactoring).
+    // This is a comprehensive operation that:
+    //   1. Validates the new package name
+    //   2. Renames the directory in java_extra/
+    //   3. Refactors all file references in the package
+    //   4. Updates the registry entry
+    //   5. Persists changes to java_pkgs.json
+    //
+    // Throws IllegalArgumentException if validation fails or package not found.
+    // Throws PkgStore.PkgStoreException if persistence fails.
+    public void renamePackage (String oldPackageName, String newPackageName) {
+        ensureLoaded();
+
+        // ────────────────────────────────────────────────────────────
+        // Validation
+        // ────────────────────────────────────────────────────────────
+        if (oldPackageName == null || oldPackageName.isEmpty()) {
+            throw new IllegalArgumentException("oldPackageName is null or empty");
+        }
+
+        if (newPackageName == null || newPackageName.isEmpty()) {
+            throw new IllegalArgumentException("newPackageName is null or empty");
+        }
+
+        if (oldPackageName.equals(newPackageName)) {
+            throw new IllegalArgumentException("oldPackageName and newPackageName are the same");
+        }
+
+        // ────────────────────────────────────────────────────────────
+        // Find the entry
+        // ────────────────────────────────────────────────────────────
+        PkgEntry entry = findByName(oldPackageName);
+        if (entry == null) {
+            throw new IllegalArgumentException(
+                "Package '" + oldPackageName + "' not found in registry"
+            );
+        }
+
+        // ────────────────────────────────────────────────────────────
+        // Prevent renaming main package
+        // ────────────────────────────────────────────────────────────
+        if (entry.isMain()) {
+            throw new IllegalStateException(
+                "Cannot rename main package '" + oldPackageName + "'"
+            );
+        }
+
+        // ────────────────────────────────────────────────────────────
+        // Validate new package name
+        // ────────────────────────────────────────────────────────────
+        PkgValidator.Result validation = PkgValidator.validate(newPackageName, cache);
+        if (!validation.isValid()) {
+            throw new IllegalArgumentException(
+                "Cannot rename to '" + newPackageName + "': " + validation.getReason()
+            );
+        }
+
+        // ────────────────────────────────────────────────────────────
+        // Get the package source directory
+        // ────────────────────────────────────────────────────────────
+        File oldSourceDir = new File(entry.getSourceRootPath());
+        if (!oldSourceDir.exists() || !oldSourceDir.isDirectory()) {
+            throw new IllegalArgumentException(
+                "Package source directory does not exist: " + oldSourceDir.getAbsolutePath()
+            );
+        }
+
+        // ────────────────────────────────────────────────────────────
+        // Build new directory path
+        // ────────────────────────────────────────────────────────────
+        String newSourceRootPath = buildExtraSourceRoot(newPackageName);
+        File newSourceDir = new File(newSourceRootPath);
+
+        if (newSourceDir.exists()) {
+            throw new IllegalArgumentException(
+                "Destination directory already exists: " + newSourceDir.getAbsolutePath()
+            );
+        }
+
+        // ────────────────────────────────────────────────────────────
+        // Rename the directory on disk
+        // ────────────────────────────────────────────────────────────
+        if (!oldSourceDir.renameTo(newSourceDir)) {
+            throw new IllegalArgumentException(
+                "Failed to rename package directory from " + oldSourceDir.getAbsolutePath() +
+                " to " + newSourceDir.getAbsolutePath()
+            );
+        }
+
+        LogUtil.d(TAG, "Directory renamed: " + oldPackageName + " → " + newPackageName);
+
+        // ────────────────────────────────────────────────────────────
+        // Refactor all file references using PkgRefactoringManager
+        // ────────────────────────────────────────────────────────────
+        PkgRefactoringManager refactoringManager = new PkgRefactoringManager();
+
+        try {
+            PkgRefactoringManager.PkgRefactoringResult refactorResult =
+                refactoringManager.refactorPackageInDirectory(
+                    newSourceDir,
+                    oldPackageName,
+                    newPackageName
+                );
+
+            if (refactorResult.hasErrors()) {
+                // Log errors but don't fail (files might not have references)
+                LogUtil.w(TAG, "Refactoring had errors: " + refactorResult.getSummary());
+            }
+
+            LogUtil.d(TAG,
+                "Refactored " + refactorResult.getTotalReplacements() +
+                " references in " + refactorResult.getTotalFilesProcessed() + " files"
+            );
+
+        } catch (Exception e) {
+            LogUtil.e(TAG, "Refactoring failed, attempting to rollback", e);
+
+            // Try to rollback: rename directory back
+            if (!newSourceDir.renameTo(oldSourceDir)) {
+                LogUtil.e(TAG, "CRITICAL: Failed to rollback directory rename!");
+                throw new IllegalArgumentException(
+                    "Refactoring failed and rollback also failed. Manual intervention required."
+                );
+            }
+
+            throw new IllegalArgumentException(
+                "Refactoring failed (rolled back): " + e.getMessage()
+            );
+        }
+
+        // ────────────────────────────────────────────────────────────
+        // Update the registry entry
+        // ────────────────────────────────────────────────────────────
+        // Remove old entry
+        cache.remove(entry);
+
+        // Create new entry with updated packageName and sourceRootPath
+        PkgEntry newEntry = new PkgEntry(
+            entry.getId(),  // Keep same id
+            newPackageName,  // New name
+            entry.getDisplayName(),  // Keep display name
+            newSourceRootPath,  // New path
+            entry.isMain()  // Keep main flag
+        );
+
+        cache.add(newEntry);
+        persistCache();
+
+        LogUtil.d(TAG, "Registry updated: package renamed");
     }
 
     // Seeds the registry with a single main package entry.

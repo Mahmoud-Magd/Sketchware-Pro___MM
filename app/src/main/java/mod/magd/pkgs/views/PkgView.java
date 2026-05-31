@@ -164,27 +164,171 @@ public final class PkgView extends LinearLayout {
         // ═════════════════════════════════════════════════════════════════════
         tvPackageName = new TextView(getContext());
         tvPackageName.setTextSize(12f);
-        tvPackageName.setTextColor(0xFF757575); // Medium gray
-        tvPackageName.setLayoutParams(new LinearLayout.LayoutParams(
+package mod.magd.pkgs.views;
+
+import android.content.Context;
+import android.view.Gravity;
+import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.LinearLayout;
+import android.widget.TextView;
+import android.widget.View;
+
+import mod.magd.pkgs.PkgEntry;
+
+// =========================================================
+// PkgView
+// =========================================================
+
+// Custom LinearLayout component that displays the active package
+// and provides action buttons (Switch, Manage).
+
+// PURPOSE:
+//   Replaces the header view building code in ManageJavaActivity.
+//   Encapsulates the package header UI into a reusable component.
+//   Simplifies ManageJavaActivity and makes the header logic testable.
+
+// STRUCTURE:
+//   [Current Package is: {Main} com.z.ui] (if main)
+//   [Current Package is: com.x.db] (if not main)
+//   
+//   [Switch Package] [Manage Packages]
+//   ─────────────────────────────────────────────
+
+// USAGE:
+//   PkgView pkgHeader = new PkgView(this);
+//   pkgHeader.setPackage(activePackage);
+//   pkgHeader.setActionListener(new PkgView.OnPackageActionListener() {
+//       @Override
+//       public void onSwitchPackage() {
+//           showPackagePickerDialog();
+//       }
+//
+//       @Override
+//       public void onManagePackages() {
+//           showPackageManageDialog();
+//       }
+//   });
+//   parentLayout.addView(pkgHeader, 0);
+
+// =========================================================
+
+public final class PkgView extends LinearLayout {
+
+    // =========================================================
+    // INTERFACES
+    // =========================================================
+
+    /**
+     * Callback for package-related action buttons.
+     */
+    public interface OnPackageActionListener {
+        /**
+         * User clicked the "Switch Package" button.
+         */
+        void onSwitchPackage();
+
+        /**
+         * User clicked the "Manage Packages" button.
+         */
+        void onManagePackages();
+    }
+
+    // =========================================================
+    // VARIABLES
+    // =========================================================
+
+    /** Current package being displayed. */
+    private PkgEntry currentPackage;
+
+    /** Listener for action button clicks. */
+    private OnPackageActionListener actionListener;
+
+    /** TextView for the package info line. */
+    private TextView tvPackageInfo;
+
+    // =========================================================
+    // CONSTRUCTOR
+    // =========================================================
+
+    /**
+     * Create a new PkgView component.
+     *
+     * @param context Application context
+     */
+    public PkgView(Context context) {
+        super(context);
+        initializeView();
+    }
+
+    // =========================================================
+    // PUBLIC — Configuration
+    // =========================================================
+
+    /**
+     * Set the package to display in this view.
+     * Updates the package info line.
+     * Call this method to refresh the header when the active package changes.
+     *
+     * @param pkg The package to display (may be null)
+     */
+    public void setPackage(PkgEntry pkg) {
+        this.currentPackage = pkg;
+        updateDisplay();
+    }
+
+    /**
+     * Set the listener for action button clicks.
+     *
+     * @param listener The callback listener
+     */
+    public void setActionListener(OnPackageActionListener listener) {
+        this.actionListener = listener;
+    }
+
+    // =========================================================
+    // PRIVATE — Initialization
+    // =========================================================
+
+    /**
+     * Build and configure the view hierarchy.
+     */
+    private void initializeView() {
+        // Configure this LinearLayout
+        setOrientation(LinearLayout.VERTICAL);
+        setLayoutParams(new LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.WRAP_CONTENT
         ));
-        tvPackageName.setPadding(0, 4, 0, 0); // Small top margin
-        addView(tvPackageName);
+        setPadding(dpToPx(24), dpToPx(24), dpToPx(24), dpToPx(24));
 
-        // ═════════════════════════════════════════════════════════════════════
+        // ═══════════════════════════════════════════════════════════════════
+        // Package Info Line
+        // "Current Package is: {Main} com.z.ui"
+        // ═══════════════════════════════════════════════════════════════════
+        tvPackageInfo = new TextView(getContext());
+        tvPackageInfo.setTextSize(14f);
+        tvPackageInfo.setTextColor(0xFF212121); // Dark gray
+        tvPackageInfo.setLayoutParams(new LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        ));
+        tvPackageInfo.setPadding(0, 0, 0, dpToPx(12));
+        addView(tvPackageInfo);
+
+        // ═══════════════════════════════════════════════════════════════════
         // Spacer View
-        // ═════════════════════════════════════════════════════════════════════
+        // ═══════════════════════════════════════════════════════════════════
         View spacer = new View(getContext());
         spacer.setLayoutParams(new LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,
-            dpToPx(12)
+            dpToPx(8)
         ));
         addView(spacer);
 
-        // ═════════════════════════════════════════════════════════════════════
+        // ═══════════════════════════════════════════════════════════════════
         // Button Layout (Switch + Manage)
-        // ═════════════════════════════════════════════════════════════════════
+        // ═══════════════════════════════════════════════════════════════════
         LinearLayout buttonLayout = new LinearLayout(getContext());
         buttonLayout.setOrientation(LinearLayout.HORIZONTAL);
         buttonLayout.setLayoutParams(new LinearLayout.LayoutParams(
@@ -192,13 +336,13 @@ public final class PkgView extends LinearLayout {
             ViewGroup.LayoutParams.WRAP_CONTENT
         ));
 
-        // "Switch Package" button
+        // "Switch" button
         Button btnSwitch = new Button(getContext());
         btnSwitch.setText("Switch");
         btnSwitch.setLayoutParams(new LinearLayout.LayoutParams(
             0,
             ViewGroup.LayoutParams.WRAP_CONTENT,
-            1f // weight=1 (equal width)
+            1f
         ));
         btnSwitch.setOnClickListener(v -> {
             if (actionListener != null) {
@@ -215,13 +359,13 @@ public final class PkgView extends LinearLayout {
         ));
         buttonLayout.addView(buttonSpacer);
 
-        // "Manage Packages" button
+        // "Manage" button
         Button btnManage = new Button(getContext());
         btnManage.setText("Manage");
         btnManage.setLayoutParams(new LinearLayout.LayoutParams(
             0,
             ViewGroup.LayoutParams.WRAP_CONTENT,
-            1f // weight=1 (equal width)
+            1f
         ));
         btnManage.setOnClickListener(v -> {
             if (actionListener != null) {
@@ -232,9 +376,9 @@ public final class PkgView extends LinearLayout {
 
         addView(buttonLayout);
 
-        // ═════════════════════════════════════════════════════════════════════
+        // ═══════════════════════════════════════════════════════════════════
         // Divider Line
-        // ═════════════════════════════════════════════════════════════════════
+        // ═══════════════════════════════════════════════════════════════════
         View divider = new View(getContext());
         divider.setLayoutParams(new LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,
@@ -246,16 +390,25 @@ public final class PkgView extends LinearLayout {
     }
 
     /**
-     * Update the display TextViews with the current package information.
-     * If no package is set, shows placeholder text.
+     * Update the package info display.
+     * Shows "Current Package is: {Main} com.z.ui" for main packages
+     * or "Current Package is: com.z.ui" for extra packages.
      */
     private void updateDisplay() {
         if (currentPackage == null) {
-            tvDisplayName.setText("No package selected");
-            tvPackageName.setText("--");
+            tvPackageInfo.setText("Current Package is: --");
         } else {
-            tvDisplayName.setText(currentPackage.getDisplayName());
-            tvPackageName.setText(currentPackage.getPackageName());
+            String text = "Current Package is: ";
+            
+            // Add {Main} prefix if this is the main package
+            if (currentPackage.isMain()) {
+                text += "{Main} ";
+            }
+            
+            // Add the package name
+            text += currentPackage.getPackageName();
+            
+            tvPackageInfo.setText(text);
         }
     }
 
@@ -265,7 +418,6 @@ public final class PkgView extends LinearLayout {
 
     /**
      * Convert density-independent pixels (dp) to physical pixels (px).
-     * Uses the device's current display density.
      *
      * @param dp Size in density-independent pixels
      * @return Size in physical pixels

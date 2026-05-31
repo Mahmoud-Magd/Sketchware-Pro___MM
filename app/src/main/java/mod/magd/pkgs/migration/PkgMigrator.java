@@ -2,6 +2,7 @@ package mod.magd.pkgs.migration;
 
 import java.io.File;
 import java.util.UUID;
+import java.util.HashMap;
 
 import a.a.a.lC;
 import a.a.a.yB;

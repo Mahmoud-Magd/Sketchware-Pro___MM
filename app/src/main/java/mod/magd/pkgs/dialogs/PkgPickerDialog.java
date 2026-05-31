@@ -1,21 +1,27 @@
 package mod.magd.pkgs.dialogs;
 
-import android.app.Dialog;
+import pro.sketchware.R;
+
 import android.content.Context;
+
+import android.app.Dialog;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+
+import pro.sketchware.utility.SketchwareUtil;
+
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
+
 import android.widget.BaseAdapter;
 import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
 
 import java.util.ArrayList;
-
-import pro.sketchware.R;
 
 
 
@@ -57,6 +63,7 @@ public final class PkgPickerDialog {
 
     public interface OnPackagePickedListener {
         void onPackagePicked (PkgEntry picked);
+        void onPackageDeleted();
     }
 
 

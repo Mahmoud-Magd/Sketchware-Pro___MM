@@ -3,8 +3,8 @@ package mod.magd.pkgs.migration;
 import java.io.File;
 import java.util.UUID;
 
-import a.a.a.jC;
-import a.a.a.yq;
+import a.a.a.lC;
+import a.a.a.yB;
 
 import mod.magd.pkgs.PkgEntry;
 import mod.magd.pkgs.PkgStore;
@@ -38,7 +38,7 @@ import pro.sketchware.utility.FileUtil;
     // 3. If NO → create the registry with the main package entry
     // 4. Main entry has: isMain=true, sourceRootPath=files/java/
     // 5. Files stay untouched on disk
-    // 6. Main package name comes from: yq.packageName (loaded from project)
+    // 6. Main package name comes from: lC.b (sc_id) (which reads the project metadata file)
 
 // USAGE:
     // In ManageJavaActivity.onCreate():
@@ -100,19 +100,22 @@ public final class PkgMigrator {
             // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
             // Step 2: Load the project's main package name
             // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-            // yq loads the project metadata from disk
-            yq projectYq = new yq(null, sc_id);
             
-            // Load required managers for yq initialization
-            var fileManager = jC.b(sc_id);
-            var dataManager = jC.a(sc_id);
-            var libraryManager = jC.c(sc_id);
+            // Just read it from the project metadata file
+            HashMap <String, Object> projectData = lC.b (sc_id);
+            if (projectData == null) {
+                LogUtil.w (TAG, "ensureMigrated: could not load project data for sc_id: " + sc_id);
+                return;
+            }
             
-            projectYq.a(libraryManager, fileManager, dataManager, yq.ExportType.APK);
+            String mainPackageName = yB.c (projectData, "my_sc_pkg_name");
+            if ( mainPackageName == null || mainPackageName.isEmpty() ) {
+                LogUtil.w (TAG, "ensureMigrated: package name is empty for sc_id: " + sc_id);
+                return;
+            }
             
-            String mainPackageName = projectYq.packageName;
+            LogUtil.d (TAG, "Project " + sc_id + " needs migration. Creating registry with main package: " + mainPackageName);
             
-            LogUtil.d(TAG, "Project " + sc_id + " needs migration. Creating registry with main package: " + mainPackageName);
 
             // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
             // Step 3: Create the main package entry
@@ -149,5 +152,4 @@ public final class PkgMigrator {
     
     
 }
-
 

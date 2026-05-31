@@ -57,29 +57,40 @@ import mod.agus.jcoderz.dx.merge.CollisionPolicy;
 import mod.agus.jcoderz.dx.merge.DexMerger;
 import mod.agus.jcoderz.editor.library.ExtLibSelected;
 import mod.agus.jcoderz.editor.manage.library.locallibrary.ManageLocalLibrary;
+
 import mod.hey.studios.build.BuildSettings;
 import mod.hey.studios.compiler.kotlin.KotlinCompilerBridge;
 import mod.hey.studios.project.ProjectSettings;
 import mod.hey.studios.project.proguard.ProguardHandler;
 import mod.hey.studios.util.SystemLogPrinter;
+
 import mod.jbk.build.BuildProgressReceiver;
 import mod.jbk.build.BuiltInLibraries;
 import mod.jbk.build.compiler.dex.DexCompiler;
 import mod.jbk.build.compiler.resource.ResourceCompiler;
 import mod.jbk.util.LogUtil;
 import mod.jbk.util.TestkeySignBridge;
+
 import mod.pranav.build.JarBuilder;
 import mod.pranav.build.R8Compiler;
 import mod.pranav.viewbinding.ViewBindingBuilder;
+
+import mod.magd.pkgs.bridges.ProjectBuilderBridge;
+
 import pro.sketchware.SketchApplication;
 import pro.sketchware.util.library.BuiltInLibraryManager;
 import pro.sketchware.utility.FilePathUtil;
 import pro.sketchware.utility.FileUtil;
 import pro.sketchware.utility.SketchwareUtil;
+
 import proguard.Configuration;
 import proguard.ConfigurationParser;
 import proguard.ParseException;
 import proguard.ProGuard;
+
+
+
+
 
 public class ProjectBuilder {
     public static final String TAG = "AppBuilder";
@@ -566,7 +577,7 @@ public class ProjectBuilder {
             // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
             File projectFilesDir = fpu.getProjectFilesDir (yq.sc_id);
             if (projectFilesDir.exists()) {
-                java.util.ArrayList<File> allJavaFiles = mod.magd.pkgs.ProjectBuilderBridge.collectAllJavaSourceFiles(
+                java.util.ArrayList<File> allJavaFiles = ProjectBuilderBridge.collectAllJavaSourceFiles(
                     yq.sc_id,
                     projectFilesDir
                 );
@@ -1026,3 +1037,5 @@ public class ProjectBuilder {
         this.buildAppBundle = buildAppBundle;
     }
 }
+
+

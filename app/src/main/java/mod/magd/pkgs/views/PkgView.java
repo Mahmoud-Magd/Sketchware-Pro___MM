@@ -15,7 +15,7 @@ import mod.magd.pkgs.PkgEntry;
 // =========================================================
 
 // Custom LinearLayout component that displays the active package
-// and provides action buttons (Switch, Manage/Delete).
+// and provides action buttons (Switch, Manage).
 
 // PURPOSE:
 //   Replaces the header view building code in ManageJavaActivity.
